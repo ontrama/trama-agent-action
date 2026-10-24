@@ -112,7 +112,7 @@ export function buildPrompt(state, brief) {
     '',
     "- Commit your work with git as you go (`git add`, `git commit` with clear messages). Don't push, switch branches or open a pull request: when you stop, Trama commits anything left, pushes the branch and opens the pull request.",
     "- Your last message becomes the pull request description, so write it for the reviewer: what you changed and why, how you checked it, and anything left to do. Don't mention pushing, the pull request or these instructions.",
-    `- Trama's MCP tools (\`mcp__${MCP_SERVER_NAME}__…\`) reach this task: post a one-line note with \`report_progress\` at each milestone, and read the task, its comments and linked documents when you need more context.`,
+    `- Your team follows this run live in Trama. Call \`report_progress\` (Trama's MCP tool, \`mcp__${MCP_SERVER_NAME}__report_progress\`) with one short line when you start (your plan), after each milestone (what you just did), and before your final message. Trama's other MCP tools read the task, its comments and linked documents when you need more context.`,
     '',
   ].join('\n');
 }
