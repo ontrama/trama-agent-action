@@ -150,13 +150,17 @@ function claudeEnv(secretValue) {
   return env;
 }
 
-export function claudeArgs(mode, mcpConfigFile) {
+// `extraTools`: TRAMA_LOCAL_EXTRA_TOOLS, comma-separated permission rules this machine's owner opts into, e.g.
+// "Bash(npm test:*),Bash(node --test:*)" so Claude can run the project's checks. They run the repository's own scripts
+// on this machine, so none are allowed by default.
+export function claudeArgs(mode, mcpConfigFile, extraTools = '') {
   const args = ['-p', '--output-format', 'stream-json', '--verbose', '--strict-mcp-config', '--setting-sources', 'project'];
   if (mode === 'check') return [...args, '--max-turns', '1'];
   if (mcpConfigFile) args.push('--mcp-config', mcpConfigFile);
   // File edits are auto-accepted inside the clone (acceptEdits keeps them to the working directory); shell access is
-  // limited to the git commands of GIT_TOOLS. No --dangerously-skip-permissions.
-  args.push('--permission-mode', 'acceptEdits', '--allowedTools', [...GIT_TOOLS, `mcp__${MCP_SERVER_NAME}`].join(','));
+  // limited to the git commands of GIT_TOOLS (plus the opted-in extras). No --dangerously-skip-permissions.
+  const extras = String(extraTools || '').split(',').map((rule) => rule.trim()).filter(Boolean);
+  args.push('--permission-mode', 'acceptEdits', '--allowedTools', [...GIT_TOOLS, ...extras, `mcp__${MCP_SERVER_NAME}`].join(','));
   return args;
 }
 
@@ -351,7 +355,7 @@ export async function main() {
       }
     } else {
       const bin = process.env.TRAMA_LOCAL_CLAUDE_BIN || 'claude';
-      const args = claudeArgs(mode, outputs.mcp_config_file);
+      const args = claudeArgs(mode, outputs.mcp_config_file, process.env.TRAMA_LOCAL_EXTRA_TOOLS);
       logger.info(`Running ${bin} ${args.join(' ')} (prompt on stdin, ${outputs.prompt?.length ?? 0} characters)`);
       const timeoutMs = (Number(process.env.TRAMA_LOCAL_TIMEOUT_MINUTES) || 60) * 60_000;
       const result = await runClaude(logger, {

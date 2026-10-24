@@ -213,3 +213,12 @@ test('local: SIGTERM cancels Claude and finish reports cancelled', async (t) => 
   assert.equal(code, 1, stdout);
   assert.equal(reports()[0].body.outcome, 'cancelled');
 });
+
+test('claudeArgs adds opted-in tools between the git commands and the MCP server', async () => {
+  const { claudeArgs } = await import('../local/run.mjs');
+  const args = claudeArgs('run', '/tmp/mcp.json', 'Bash(npm test:*), Bash(node --test:*) ,');
+  const allowed = args[args.indexOf('--allowedTools') + 1].split(',');
+  assert.ok(allowed.includes('Bash(npm test:*)') && allowed.includes('Bash(node --test:*)'));
+  assert.equal(allowed.at(-1), 'mcp__trama');
+  assert.ok(!claudeArgs('run', null).join(' ').includes('npm test'));
+});
