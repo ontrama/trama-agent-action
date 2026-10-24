@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BRANCH, GIT_ENV, ROOT, RUN_TOKEN, makeRepos, remoteFile, remoteLog, runScript, startResponse, stubServer } from './helpers.mjs';
+import { BRANCH, GIT_ENV, ROOT, RUN_TOKEN, makeRepos, mkdtempSync, remoteFile, remoteLog, runScript, startResponse, stubServer } from './helpers.mjs';
 
 const OIDC = 'local-hs256-oidc-token-123';
 const GH_TOKEN = 'ghs_local_machine_token_123';

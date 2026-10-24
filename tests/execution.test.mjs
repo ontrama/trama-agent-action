@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { analyzeExecution, readExecutionFile } from '../scripts/execution.mjs';
 import { fakeExecution, nextTenPmUtc } from '../local/fake.mjs';
 import { parseOutputs, redact, mask, tailBytes, firstLine, buildReport } from '../scripts/lib.mjs';
-import { ROOT, resultMessages } from './helpers.mjs';
+import { ROOT, mkdtempSync, resultMessages } from './helpers.mjs';
 
 test('a real Claude Code 2.1.310 stream (invalid OAuth token) gives authentication_failed / 401', () => {
   const messages = readExecutionFile(join(ROOT, 'tests', 'fixtures', 'login-failed.cli-2.1.310.jsonl'));

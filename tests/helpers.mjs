@@ -3,12 +3,24 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync as makeTempDir, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Temp dirs made by the tests go away when the test file's process exits.
+const tempDirs = [];
+process.on('exit', () => {
+  for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true });
+});
+
+export function mkdtempSync(prefix) {
+  const dir = makeTempDir(prefix);
+  tempDirs.push(dir);
+  return dir;
+}
 export const RUN_TOKEN = 'lxt_at_runtoken_0123456789abcdef';
 export const OIDC_TOKEN = 'eyJhbGciOiJSUzI1NiJ9.oidc-claims.signature0123';
 export const REQUEST_TOKEN = 'actions-id-token-request-0123';
