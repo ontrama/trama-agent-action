@@ -1,0 +1,117 @@
+# Trama agent — Trama starts this workflow when a workspace admin sends a task to Claude ("Run with Claude").
+#
+# Save it as .github/workflows/trama-agent.yml (Trama looks for that name) on the default branch, and add each Trama
+# account's token as a repository or organization secret under the name the account shows (TRAMA_…), from
+# `claude setup-token`. No secret travels in the inputs: only the secret's name.
+name: Trama agent
+run-name: Trama ${{ inputs.issue_key }} · attempt ${{ inputs.attempt_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      attempt_id:
+        description: Trama attempt id
+        required: true
+        type: string
+      issue_key:
+        description: Task issue key
+        required: true
+        type: string
+      provider:
+        description: Agent provider
+        required: true
+        type: string
+        default: claude
+      kind:
+        description: Credential kind
+        required: true
+        type: string
+        default: oauth_token
+      secret_name:
+        description: Name of the secret with the account's token (TRAMA_…)
+        required: true
+        type: string
+      base_branch:
+        description: Branch to start from and open the pull request against
+        required: false
+        type: string
+      branch:
+        description: Branch Claude works on
+        required: false
+        type: string
+      mode:
+        description: run, or check (only tests the account)
+        required: true
+        type: string
+        default: run
+      api_url:
+        description: Trama API
+        required: true
+        type: string
+
+permissions:
+  contents: write # push the run branch
+  pull-requests: write # open the pull request
+  id-token: write # prove to Trama that this is the repository's own workflow (GitHub OIDC)
+
+concurrency:
+  group: trama-agent-${{ inputs.branch || inputs.attempt_id }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60 # keep finish's timeout_minutes in sync
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history, so Claude can read git log and blame
+
+      - name: Start (Trama)
+        id: trama
+        uses: ontrama/trama-agent-action/start@v1
+        with:
+          attempt_id: ${{ inputs.attempt_id }}
+          api_url: ${{ inputs.api_url }}
+          issue_key: ${{ inputs.issue_key }}
+          secret_name: ${{ inputs.secret_name }}
+          secret_present: ${{ secrets[inputs.secret_name] != '' }}
+          mode: ${{ inputs.mode }}
+          base_branch: ${{ inputs.base_branch }}
+          branch: ${{ inputs.branch }}
+
+      - name: Claude
+        id: claude
+        if: inputs.provider == 'claude' && inputs.mode == 'run'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets[inputs.secret_name] }}
+          github_token: ${{ github.token }}
+          allowed_bots: ontrama[bot] # Trama's GitHub App dispatches this workflow
+          prompt: ${{ steps.trama.outputs.prompt }}
+          claude_args: ${{ steps.trama.outputs.claude_args }}
+          # To let Claude run your tests, add commands to the allowed tools, e.g.:
+          # claude_args: |
+          #   ${{ steps.trama.outputs.claude_args }}
+          #   --allowedTools "Bash(npm test:*),Bash(npm run lint:*)"
+
+      - name: Claude (account check)
+        id: claude_check
+        if: inputs.provider == 'claude' && inputs.mode == 'check'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets[inputs.secret_name] }}
+          github_token: ${{ github.token }}
+          allowed_bots: ontrama[bot]
+          prompt: Reply with the single word OK.
+          claude_args: --max-turns 1
+
+      - name: Finish (Trama)
+        if: always()
+        uses: ontrama/trama-agent-action/finish@v1
+        with:
+          execution_file: ${{ steps.claude.outputs.execution_file || steps.claude_check.outputs.execution_file }}
+          claude_outcome: ${{ inputs.mode == 'check' && steps.claude_check.outcome || steps.claude.outcome }}
+          job_status: ${{ job.status }}
+          timeout_minutes: 60

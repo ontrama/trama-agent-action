@@ -1,0 +1,14 @@
+{
+  "name": "trama-agent-action",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Trama's GitHub action and local executor for agent runs: start and finish steps around anthropics/claude-code-action.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

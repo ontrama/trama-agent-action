@@ -1,0 +1,91 @@
+name: Trama agent — start
+description: >-
+  Starts a Trama agent attempt: proves the workflow's identity to Trama with GitHub OIDC, gets the brief and a run
+  token, prepares the run branch and hands Claude its prompt and arguments.
+author: Trama
+branding:
+  icon: play
+  color: purple
+
+inputs:
+  attempt_id:
+    description: The Trama attempt id (workflow input attempt_id).
+    required: true
+  api_url:
+    description: Trama's API base URL (workflow input api_url). Also the OIDC audience unless oidc_audience is set.
+    required: true
+  secret_name:
+    description: Name of the GitHub secret with the account's token; must match ^TRAMA_[A-Z0-9_]+$.
+    required: true
+  secret_present:
+    description: "Whether that secret is set: the expression secrets[inputs.secret_name] != '' (true or false)."
+    required: true
+  mode:
+    description: run (work on the task) or check (only test the account).
+    required: false
+    default: run
+  issue_key:
+    description: The task's issue key, for the logs.
+    required: false
+    default: ""
+  base_branch:
+    description: Fallback base branch when Trama doesn't send one.
+    required: false
+    default: ""
+  branch:
+    description: Fallback run branch when Trama doesn't send one.
+    required: false
+    default: ""
+  oidc_audience:
+    description: Audience of the GitHub OIDC token (default api_url).
+    required: false
+    default: ""
+
+outputs:
+  prompt:
+    description: The prompt for Claude (Trama's brief plus how the run works).
+    value: ${{ steps.start.outputs.prompt }}
+  prompt_file:
+    description: Path of the same prompt in $RUNNER_TEMP/trama/brief.md.
+    value: ${{ steps.start.outputs.prompt_file }}
+  claude_args:
+    description: Arguments for claude-code-action (Trama's MCP server with the run token, permission mode, allowed tools). Contains the masked run token.
+    value: ${{ steps.start.outputs.claude_args }}
+  mcp_config_file:
+    description: Path of the MCP configuration (0600) in $RUNNER_TEMP/trama.
+    value: ${{ steps.start.outputs.mcp_config_file }}
+  mode:
+    description: run or check, as Trama started the attempt.
+    value: ${{ steps.start.outputs.mode }}
+  branch:
+    description: The run branch (empty in check mode).
+    value: ${{ steps.start.outputs.branch }}
+  base_branch:
+    description: The base branch.
+    value: ${{ steps.start.outputs.base_branch }}
+  continue_from_branch:
+    description: true when the attempt continues from a branch an earlier attempt pushed.
+    value: ${{ steps.start.outputs.continue_from_branch }}
+  attempt_id:
+    description: The attempt id.
+    value: ${{ steps.start.outputs.attempt_id }}
+  run_id:
+    description: The Trama run id.
+    value: ${{ steps.start.outputs.run_id }}
+
+runs:
+  using: composite
+  steps:
+    - id: start
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/../scripts/start.mjs"
+      env:
+        TRAMA_ATTEMPT_ID: ${{ inputs.attempt_id }}
+        TRAMA_API_URL: ${{ inputs.api_url }}
+        TRAMA_SECRET_NAME: ${{ inputs.secret_name }}
+        TRAMA_SECRET_PRESENT: ${{ inputs.secret_present }}
+        TRAMA_MODE: ${{ inputs.mode }}
+        TRAMA_ISSUE_KEY: ${{ inputs.issue_key }}
+        TRAMA_BASE_BRANCH: ${{ inputs.base_branch }}
+        TRAMA_BRANCH: ${{ inputs.branch }}
+        TRAMA_OIDC_AUDIENCE: ${{ inputs.oidc_audience }}
