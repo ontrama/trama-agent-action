@@ -1,0 +1,8 @@
+{
+  "name": "trama-fake-github",
+  "private": true,
+  "description": "A local stand-in for the GitHub API, for developing Trama agent runs without GitHub.",
+  "type": "module",
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "libsodium-wrappers": "0.7.15" }
+}
