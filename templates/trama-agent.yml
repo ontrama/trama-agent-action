@@ -115,3 +115,4 @@ jobs:
           claude_outcome: ${{ inputs.mode == 'check' && steps.claude_check.outcome || steps.claude.outcome }}
           job_status: ${{ job.status }}
           timeout_minutes: 60
+          open_pull_request: false # Trama opens the PR with its GitHub App (and your CI runs on it)

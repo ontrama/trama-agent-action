@@ -297,6 +297,8 @@ export function buildReport(fields = {}) {
     wip_pushed: fields.wip_pushed === true,
     no_changes: fields.no_changes === true,
     pull_request_url: fields.pull_request_url ?? null,
+    branch_pushed: fields.branch_pushed === true,
+    pull_request: fields.pull_request ?? null,
   };
 }
 

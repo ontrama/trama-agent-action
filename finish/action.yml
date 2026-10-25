@@ -28,6 +28,12 @@ inputs:
     description: Token that pushes the branch and opens the pull request (default the job's GITHUB_TOKEN).
     required: false
     default: ""
+  open_pull_request:
+    description: >-
+      "true" opens the pull request here with github_token (the repository must allow Actions to create pull requests);
+      "false" pushes the branch and lets Trama open it with its GitHub App.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -41,3 +47,4 @@ runs:
         TRAMA_JOB_STATUS: ${{ inputs.job_status }}
         TRAMA_TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
         GITHUB_TOKEN: ${{ inputs.github_token || github.token }}
+        TRAMA_OPEN_PULL_REQUEST: ${{ inputs.open_pull_request }}

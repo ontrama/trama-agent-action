@@ -148,6 +148,14 @@ async function finishBranch(state, report, analysis) {
     log(`Pushed ${state.branch} (${ahead} commit(s) ahead of ${state.base_branch}).`);
     const footer = state.pull_request?.body_footer || (state.task?.url ? `Trama: ${state.task.url}` : '');
     const body = `${truncate(analysis?.resultText?.trim() || 'Claude finished without a summary.', RESULT_TEXT_MAX)}${footer ? `\n\n---\n\n${footer}` : ''}`;
+    // open_pull_request: false (the template's default) leaves the PR to Trama, which opens it with its GitHub App: no
+    // repository setting needed, and the PR starts the repository's CI.
+    if (env('TRAMA_OPEN_PULL_REQUEST', 'true') === 'false') {
+      report.branch_pushed = true;
+      report.pull_request = { title: state.pull_request?.title || key, body };
+      log('Trama opens the pull request.');
+      return;
+    }
     try {
       const pr = await openPullRequest({ title: state.pull_request?.title || key, head: state.branch, base: state.base_branch, body });
       report.pull_request_url = pr.url;

@@ -388,6 +388,8 @@ export async function main() {
         TRAMA_JOB_STATUS: jobStatus,
         TRAMA_TIMEOUT_MINUTES: String(Number(process.env.TRAMA_LOCAL_TIMEOUT_MINUTES) || 60),
         TRAMA_TIMED_OUT: timedOut ? 'true' : 'false',
+        // Like the template's open_pull_request: "false" leaves the PR to Trama (which needs its GitHub App, or a stand-in).
+        TRAMA_OPEN_PULL_REQUEST: process.env.TRAMA_LOCAL_OPEN_PULL_REQUEST === 'false' ? 'false' : 'true',
         GITHUB_TOKEN: token,
       },
     });

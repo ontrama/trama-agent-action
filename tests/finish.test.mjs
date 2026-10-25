@@ -101,6 +101,8 @@ test('finish: success with changes commits leftovers, pushes, opens the PR and r
     wip_pushed: false,
     no_changes: false,
     pull_request_url: 'https://github.com/acme/web/pull/40',
+    branch_pushed: false,
+    pull_request: null,
   });
 
   const again = await runScript('scripts/finish.mjs', { cwd: repos.work, env: { ...baseEnv, TRAMA_CLAUDE_OUTCOME: 'success', TRAMA_JOB_STATUS: 'success' } });
@@ -252,4 +254,23 @@ test('finish: without state (start never got a token) there is nothing to report
   assert.equal(code, 0);
   assert.match(stdout, /nothing to report/);
   assert.equal(server.requests.length, 0);
+});
+
+test('finish: with open_pull_request false it pushes and leaves the PR to Trama', async (t) => {
+  const summary = 'Added the webhook controller.';
+  const { server, repos, finish, report } = await attempt(t, {
+    env: { TRAMA_OPEN_PULL_REQUEST: 'false' },
+    claude: (repos) => commitFile(repos, 'controller.rb', 'Add the webhook controller'),
+    messages: resultMessages({ result: summary }),
+  });
+  assert.equal(finish.code, 0, finish.stdout + finish.stderr);
+  assert.deepEqual(remoteLog(repos, BRANCH), ['Add the webhook controller', 'Initial commit']);
+  assert.equal(server.to('POST', /\/pulls$/).length, 0, 'no PR opened by the workflow');
+  assert.equal(report.outcome, 'succeeded');
+  assert.equal(report.pull_request_url, null);
+  assert.equal(report.branch_pushed, true);
+  assert.deepEqual(report.pull_request, {
+    title: 'BOARDP-1713 Implement webhooks',
+    body: `${summary}\n\n---\n\nTrama: https://ontrama.com/tasks/7871 · run #12`,
+  });
 });

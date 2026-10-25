@@ -119,6 +119,7 @@ fakes the runner environment (`RUNNER_TEMP`, `GITHUB_OUTPUT`, `GITHUB_TOKEN` fro
 | `TRAMA_LOCAL_CLONE_FROM` | Optional path or URL to `git clone` instead of `gh repo clone` (tests) |
 | `TRAMA_LOCAL_GITHUB_TOKEN`, `TRAMA_LOCAL_GITHUB_API_URL` | Optional, instead of `gh auth token` and `https://api.github.com` |
 | `TRAMA_LOCAL_CLAUDE_BIN`, `TRAMA_LOCAL_TIMEOUT_MINUTES`, `TRAMA_LOCAL_KEEP=1` | Optional: the claude binary, the time limit (60), keep the temp dir |
+| `TRAMA_LOCAL_OPEN_PULL_REQUEST=false` | Optional: push the branch and let Trama open the PR (as the template does on GitHub) |
 | `TRAMA_LOCAL_EXTRA_TOOLS` | Optional, comma-separated: more commands Claude may run, e.g. `Bash(npm test:*),Bash(node --test:*)`. They run the repository's own scripts on this machine, so none by default |
 
 Secret values:

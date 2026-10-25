@@ -119,5 +119,7 @@ test('helpers: outputs round-trip, redaction, commit subject, report shape', () 
     'wip_pushed',
     'no_changes',
     'pull_request_url',
+    'branch_pushed',
+    'pull_request',
   ]);
 });
