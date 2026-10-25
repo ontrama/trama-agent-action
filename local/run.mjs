@@ -19,7 +19,7 @@
 // SIGTERM/SIGINT cancel Claude and still let finish report `cancelled`. Exits 0 only when the attempt succeeded.
 
 import { spawn, spawnSync } from 'node:child_process';
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -252,6 +252,9 @@ export async function main() {
   try {
     inputs = parseJson('TRAMA_LOCAL_INPUTS', process.env.TRAMA_LOCAL_INPUTS, null);
     secrets = parseJson('AGENT_RUNS_LOCAL_SECRETS', process.env.AGENT_RUNS_LOCAL_SECRETS, {});
+    // Secrets stored through Trama's guided setup land in this file (the local GitHub stand-in opens the sealed boxes).
+    const file = process.env.AGENT_RUNS_LOCAL_SECRETS_FILE;
+    if (file && existsSync(file)) secrets = { ...secrets, ...parseJson('AGENT_RUNS_LOCAL_SECRETS_FILE', readFileSync(file, 'utf8'), {}) };
   } catch (error) {
     logger.info(error.message);
     return 1;
