@@ -8,22 +8,28 @@ Two composite steps go around [`anthropics/claude-code-action`](https://github.c
 
 - **`start`** proves to Trama that the job is the repository's own `trama-agent.yml` (GitHub OIDC), gets the brief and
   a short-lived run token, creates the run branch and hands Claude its prompt and arguments;
-- **`finish`** (`if: always()`) commits and pushes Claude's work, opens the pull request and reports the outcome to
-  Trama, once. On a plan limit, rate limit or failed login, Trama moves the run to the next Claude account, which
-  continues from the pushed branch.
+- **`finish`** (`if: always()`) commits and pushes Claude's work and reports the outcome to Trama, once; Trama then
+  opens the pull request with its GitHub App, so the repository's CI runs on it. On a plan limit, rate limit or failed
+  login, Trama moves the run to the next Claude account, which continues from the pushed branch.
 
 Plus `local/run.mjs`, which plays the same workflow on a developer's machine (Trama's local mode). Node 20+, no
 dependencies. The contract with Trama is `docs/AGENT_RUNS.md` in the `trama` repository.
 
 ## Set up a repository
 
-1. Save [`templates/trama-agent.yml`](templates/trama-agent.yml) as `.github/workflows/trama-agent.yml` on the default
-   branch (Workspace settings → Agents in Trama shows the same file). Trama dispatches it by that name.
-2. For each Claude account in Trama, run `claude setup-token` (Claude Pro or Max) and add the token as a repository or
-   organization secret named like the account says (`TRAMA_` + `A–Z 0–9 _`, e.g. `TRAMA_CLAUDE_MAX_JP`).
-3. In the repository (or organization) settings → Actions → General, turn on **Allow GitHub Actions to create and
-   approve pull requests**: `finish` opens the pull request with the job's `GITHUB_TOKEN`.
-4. The Trama GitHub App needs **Actions: read and write** to dispatch the workflow (accept it when GitHub asks).
+In Trama, **Workspace settings → Agents → Connect Claude** does it for you:
+
+1. **Workflow:** "Add it" opens a pull request that adds [`templates/trama-agent.yml`](templates/trama-agent.yml) as
+   `.github/workflows/trama-agent.yml`; merge it. Trama dispatches the workflow by that name.
+2. **Claude account:** run `claude setup-token` (Claude Pro or Max) and paste the token. Your browser encrypts it with
+   the repository's Actions public key and Trama stores it as the secret named like the account (`TRAMA_` +
+   `A–Z 0–9 _`, e.g. `TRAMA_CLAUDE_MAX_JP`); Trama never sees the token.
+
+The Trama GitHub App needs read and write on **Actions, Contents, Workflows, Pull requests and Secrets** (accept it
+when GitHub asks; the Agents page links there while one is missing).
+
+By hand instead: copy the template to `.github/workflows/trama-agent.yml` on the default branch, and add each token as
+a repository or organization Actions secret with the account's name.
 
 The workflow lets Claude edit files and run read-only and committing `git` commands. To let it run your tests, append
 allowed tools in the workflow (the action merges repeated `--allowedTools`):
@@ -66,13 +72,13 @@ Outputs: `prompt` (Trama's brief plus a short "How this run works"), `prompt_fil
 
 `finish`: `execution_file` and `claude_outcome` (the Claude step's `execution_file` output and `outcome`), `job_status`
 (`${{ job.status }}`), `timeout_minutes` (the job's, to tell a timeout from a cancellation), `github_token` (default
-the job token).
+the job token), `open_pull_request` (`false` in the template: push and let Trama open the PR).
 
 ### What finish does
 
 | Claude | Git | Report |
 |---|---|---|
-| succeeded, commits ahead of the base | commits leftovers as `<KEY>: <first line of Claude's summary>`, pushes, opens the PR (title from Trama, body = Claude's summary + Trama's footer; an open PR for the branch is reused) | `succeeded` + `pull_request_url` |
+| succeeded, commits ahead of the base | commits leftovers as `<KEY>: <first line of Claude's summary>` and pushes | `succeeded` + `branch_pushed` and `pull_request` (title from Trama, body = Claude's summary + Trama's footer), and Trama opens the PR. With `open_pull_request: true`, finish opens it with the job token instead (an open PR for the branch is reused) and reports `pull_request_url` |
 | succeeded, nothing ahead of the base | — | `succeeded` + `no_changes: true` |
 | failed (limit, login, error) | commits leftovers as `WIP <KEY>: attempt <n> stopped` and pushes when the branch has commits | `failed` + `wip_pushed`, the end of Claude's output (≤ 8 KB) as `error_text`, and from the execution file `error_type` (`usage_limit_reached`, `rate_limit`, `authentication_failed`, `error_max_turns`, …), `api_error_status`, `resets_at` (ISO 8601) |
 | cancelled / hit `timeout-minutes` | WIP as above | `cancelled` / `timeout` |
@@ -80,8 +86,8 @@ the job token).
 
 Every report carries `result_text`, `usage` (`input_tokens` = input + cache writes + cache reads, `output_tokens`,
 `cost_usd`, `duration_ms`, `num_turns`, plus `cache_read_input_tokens`, `cache_creation_input_tokens`) and
-`session_id`. A PR GitHub refuses (e.g. the setting in step 3 is off) is reported as `failed` / `pull_request_failed`
-with the branch pushed.
+`session_id`. With `open_pull_request: true`, a PR GitHub refuses (the repository doesn't allow GitHub Actions to
+create pull requests) is reported as `failed` / `pull_request_failed` with the branch pushed.
 
 ### Tokens
 
@@ -97,8 +103,8 @@ Claude's own commits are authored `claude[bot]` (claude-code-action's git setup)
 
 ### Known limits
 
-- Pull requests opened with `GITHUB_TOKEN` don't trigger other workflows (GitHub's rule): CI starts on the next push
-  or when someone re-runs it.
+- With `open_pull_request: true`, the PR is opened with `GITHUB_TOKEN`, which doesn't trigger other workflows (GitHub's
+  rule), and the repository must allow GitHub Actions to create pull requests. The template leaves the PR to Trama.
 - `GITHUB_TOKEN` can't push changes to `.github/workflows/*`; such a push fails and is reported.
 - A job cancelled within 3 minutes of `timeout-minutes` is reported as `timeout`.
 
